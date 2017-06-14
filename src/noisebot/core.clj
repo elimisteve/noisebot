@@ -34,7 +34,7 @@
 
 (defn parse-irc-cmd
   [text]
-  (let [cmd-args (remove string/blank? (string/split text #"\s"))]
+  (let [cmd-args (string/split text #"\s+")]
     (if (and (not (empty? cmd-args))
              (= \! (first text)))
       [(subs (first cmd-args) 1)  ; command without leading \!

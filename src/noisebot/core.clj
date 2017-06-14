@@ -2,7 +2,7 @@
   (:gen-class))
 
 (require '[irclj.core :as irc])
-(require '[clojure.string :as str])
+(require '[clojure.string :as string])
 
 (def mynick "noisebot")
 (def channel "#noisebridge")
@@ -30,21 +30,29 @@
       (println "monitor-urls-irc: About to start monitoring" urls
                "then reporting failed attempts to" reply-to)
       (message! reply-to
-                (str "Now fake-monitoring: " (str/join ", " urls))))))
+                (str "Now fake-monitoring: " (string/join ", " urls))))))
+
+(defn parse-irc-cmd
+  [text]
+  (let [cmd-args (remove string/blank? (string/split text #"\s"))]
+    (if (and (not (empty? cmd-args))
+             (= \! (first text)))
+      [(subs (first cmd-args) 1)  ; command without leading \!
+       (rest cmd-args)]           ; args
+      ["" '()])))
 
 (defn irc-handle-privmsg
   "Parses the incoming IRC message, passes these values to per-feature handlers"
-  [irc type & args]
-  (let [{:keys [text target nick command]} type]
-    (if (and (= command "PRIVMSG") (= \! (first text)))
-      (let [cmd-params (remove str/blank? (str/split text #"\s"))]
-        (when (not (empty? cmd-params))
-          (let [cmd (subs (first cmd-params) 1)
-                params (rest cmd-params)]
-            (case cmd
-              ("mon" "monitor") (monitor-urls-irc target nick params)
-              "default"))))
-      (println "irc-handle-privmsg not handling message" command "with text" text))))
+  [irc type]
+  (let [{:keys [command target nick text]} type]
+    (if (= command "PRIVMSG")
+      (let [[cmd args] (parse-irc-cmd text)]
+        (case cmd
+          "" (printf "irc-handle-privmsg not handling non-command `%s`\n" text)
+          ("mon" "monitor") (monitor-urls-irc target nick args)
+          ;; Add new bot commands here
+          "default"))
+      (println "irc-handle-privmsg not handling non-PRIVMSG message" command text))))
 
 (def callbacks {:raw-log eat-log
                 :privmsg irc-handle-privmsg})

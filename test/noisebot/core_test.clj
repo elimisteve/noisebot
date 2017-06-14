@@ -2,15 +2,19 @@
   (:require [clojure.test :refer :all]
             [noisebot.core :refer :all]))
 
+(defmacro h-parse
+  "h-parse == helper for testing parse-irc-cmd"
+  [wanted text-in]
+  `(is (= ~wanted (parse-irc-cmd ~text-in))))
+
 (deftest irc-tests
-  (let [empty-list '()
-        noncmd ["" empty-list]]
+  (let [noncmd ["" '()]]
     (testing "Non-commands"
-      (is (= noncmd (parse-irc-cmd "")))
-      (is (= noncmd (parse-irc-cmd "!")))
-      (is (= noncmd (parse-irc-cmd " !not at start")))
-      (is (= ["mon" '("google.com")] (parse-irc-cmd "!mon google.com"))))
+      (h-parse noncmd "")
+      (h-parse noncmd "!")
+      (h-parse noncmd " !not at start")
     (testing "Legit-formatted commands")
-      (is (= ["mon" '("google.com")] (parse-irc-cmd "!mon   google.com   ")))
-      (is (= ["monitor" '("google.com")] (parse-irc-cmd "!monitor \t google.com  \t ")))
-      (is (= ["1" '("2" "3")] (parse-irc-cmd "!1 2 3")))))
+      (h-parse ["mon" '("google.com")]     "!mon google.com")
+      (h-parse ["mon" '("google.com")]     "!mon   google.com   ")
+      (h-parse ["monitor" '("google.com")] "!monitor \t google.com  \t ")
+      (h-parse ["1" '("2" "3")]            "!1 2 3"))))
